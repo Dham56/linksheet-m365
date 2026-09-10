@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LinkSheet</title>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <link rel="stylesheet" href="./taskpane.css?v=46037cb1" />
+  </head>
+  <body>
+    <header>
+      <h1>LinkSheet</h1>
+      <p id="who" class="muted">Not signed in</p>
+    </header>
+
+    <main>
+      <section id="signin-section">
+        <button id="signin" class="primary">Sign in to OneDrive</button>
+        <p class="hint">LinkSheet reads this workbook and the file <em>names</em> in the OneDrive folder
+          you pick, then writes links into the workbook. It never opens your files, and it never
+          changes anything in OneDrive.
+          <a href="https://cropsettle.com/m365-privacy.html" target="_blank" rel="noopener">Privacy</a></p>
+      </section>
+
+      <section id="browser-section" hidden>
+        <h2 id="folder-heading" class="fieldlabel">Folder of documents</h2>
+        <nav id="crumbs" class="crumbs" aria-label="Folder path"></nav>
+        <!-- Selecting the folder you are STANDING IN used to be the last row of
+             the scrolling list below, i.e. invisible — so people browsed deep and
+             then linked whatever they had selected earlier. It lives here now,
+             always in view, directly under the path. -->
+        <div id="use-here" class="use-here-bar" hidden></div>
+        <ul id="folders" class="folders"></ul>
+        <p id="chosen" class="hint"></p>
+      </section>
+
+      <section class="options" id="options-section" hidden>
+        <label>
+          <input id="recursive" type="checkbox" checked /> Include subfolders
+          <span class="prolock" id="lock-recursive" hidden>Pro</span>
+        </label>
+        <label>
+          <input id="partial" type="checkbox" />
+          Partial match
+          <span class="prolock" id="lock-partial" hidden>Pro</span>
+          <span class="hint">— links when a cell only contains part of the file name. Off by default.</span>
+        </label>
+      </section>
+
+      <section class="actions" id="actions-section" hidden>
+        <div class="row">
+          <button id="link" class="primary" disabled>Link Files</button>
+          <button id="clear">Clear Hyperlinks</button>
+        </div>
+        <button id="repair" disabled>Repair Broken Links</button>
+        <p class="hint" id="repair-hint">
+          Moved this workbook to OneDrive? Repair re-points links that still aim at a PC folder or
+          a network share. Anything it cannot resolve is listed, never guessed.
+        </p>
+        <!-- Free-plan balance. Hidden entirely for Pro, who have no balance to
+             read, and never shown as a number we could not actually read. -->
+        <p class="hint" id="trial-line" hidden></p>
+      </section>
+
+      <!-- Pro. Key entry is always available: pasting a key you already own is
+           not a purchase, so it is shown on every platform. The BUY link is
+           separate and is suppressed on iOS/Android under Microsoft Commercial
+           Marketplace policy 1120.2. -->
+      <section id="pro-section" class="pro" hidden>
+        <p id="pro-active" class="pro-active" hidden>
+          Pro is active ✓ <span id="pro-serial" class="muted"></span>
+          <button id="key-remove" class="linklike">Remove key</button>
+        </p>
+        <div id="pro-free">
+          <label class="fieldlabel" for="key-input">Key</label>
+          <input id="key-input" type="text" autocomplete="off" spellcheck="false"
+                 placeholder="LSM1.…" aria-describedby="key-msg" />
+          <button id="key-apply">Unlock Pro</button>
+          <p class="hint" id="pro-blurb">
+            Pro unlocks partial match, subfolders, and unlimited repairs.
+          </p>
+          <p class="hint" id="pro-buy" hidden></p>
+        </div>
+        <!-- ⚠️ OUTSIDE #pro-free ON PURPOSE. This is the only place the user is
+             told what happened to their key, and some of those outcomes turn Pro
+             ON — which hides #pro-free. Nested inside it, the "Pro is on for this
+             session but your browser would not save the key" warning was written
+             into an element that had just been hidden, so the one person who
+             needed it never saw it. (Codex review lens, 2026-09-08.) -->
+        <p class="hint" id="key-msg" role="status" aria-live="polite"></p>
+      </section>
+
+      <!-- role=status + aria-live: a screen reader is otherwise told nothing when a
+           run finishes. Certification tests this. -->
+      <section id="status" class="status" role="status" aria-live="polite" hidden></section>
+      <section id="results" class="results" role="region" aria-label="Results" hidden></section>
+      <!-- The funnel. Hidden until something makes it relevant, and never shown
+           on iOS/Android: Microsoft policy 1120.2 forbids purchase or upsell UI
+           on mobile. See showDesktopHint() in taskpane.js. -->
+      <aside id="desktop-hint" class="hint desktop-hint" hidden></aside>
+    </main>
+
+    <footer>
+      <p class="muted">
+        <a href="https://cropsettle.com/m365-support.html" target="_blank" rel="noopener">Support</a>
+        · <a href="https://cropsettle.com/m365-privacy.html" target="_blank" rel="noopener">Privacy</a>
+        <span id="other-products" hidden>
+          · <a href="https://getlinksheet.com/" target="_blank" rel="noopener">Files on your PC or Google Drive?</a>
+        </span>
+        · <span id="signout-wrap" hidden><button id="signout" class="linklike">Sign out</button></span>
+      </p>
+    </footer>
+
+    <script type="module" src="./taskpane.js?v=ffa516e8"></script>
+  </body>
+</html>

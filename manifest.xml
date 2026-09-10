@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LinkSheet for Microsoft 365 — Excel add-in manifest (add-in only / "XML" manifest).
+
+  WHY THE XML MANIFEST AND NOT THE UNIFIED JSON ONE:
+  The unified manifest for Microsoft 365 went generally available for Excel on
+  2026-07-16 and is the strategic direction — but it is NOT supported on
+  perpetual-licence Office ("Office on Windows (perpetual versions): No") or on
+  mobile, whereas this XML manifest is. LinkSheet's desktop customers are
+  frequently on perpetual Office, so v1 takes the wider door.
+  ⚠️ Note the ExcelApi 1.9 requirement below narrows that reach on its own:
+  1.9 ships with Office 2019 and later, so Office 2016 perpetual is excluded
+  either way. The XML manifest still reaches more hosts than the unified one.
+  There is a second reason to prefer XML for now: research on 2026-08-10 found
+  that a unified-manifest offer might be classified under certification policy
+  section 1140, where Publisher Attestation is MANDATORY rather than optional.
+  That is NOT ESTABLISHED — but it is a risk the XML manifest does not carry.
+  The add-in CODE is identical under either manifest, so this stays cheap to
+  revisit — see docs/PLAN.md.
+
+  Verified against Microsoft Learn 2026-08-10.
+-->
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp">
+
+  <Id>27edb0fb-44cf-47d4-9a67-89019eac082a</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>CropSettle LLC</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="LinkSheet for Microsoft 365" />
+  <Description DefaultValue="Link a folder of OneDrive documents to the cells that name them. Repair re-points links that still aim at a PC folder or network share. Working links are left alone; anything ambiguous is listed, never guessed." />
+
+  <IconUrl DefaultValue="https://dham56.github.io/linksheet-m365/assets/icon-64.png" />
+  <HighResolutionIconUrl DefaultValue="https://dham56.github.io/linksheet-m365/assets/icon-128.png" />
+
+  <!-- AppSource requires a working support URL. Reuses the page the Microsoft
+       Store listing already points at, so there is one support surface for all
+       four products, not four. -->
+  <SupportUrl DefaultValue="https://cropsettle.com/m365-support.html" />
+
+  <AppDomains>
+    <AppDomain>https://login.microsoftonline.com</AppDomain>
+    <AppDomain>https://graph.microsoft.com</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Workbook" />
+  </Hosts>
+
+  <!-- ExcelApi 1.9, not 1.7. 1.7 introduced Range.hyperlink, which is the one API
+       this product cannot work without — but 1.9 added getCellProperties /
+       setCellProperties, which is how the add-in reads and writes hyperlinks in
+       BANDS rather than one proxy object per cell. Without it, a workbook of the
+       size this product routinely handles (~50,000 links) exceeds Excel on the
+       web's 5 MB per-sync payload limit and fails outright. 1.9 ships with
+       Office 2019 and later. Declaring it means Excel refuses to install on a
+       build that can't run it, instead of installing and failing at the moment
+       the customer presses the button.
+       ⚠️ This also puts iPad in scope for Microsoft's AppSource validators
+       (ExcelApi 1.9 is supported there) — see docs/PLAN.md. -->
+  <Requirements>
+    <Sets DefaultMinVersion="1.9">
+      <Set Name="ExcelApi" MinVersion="1.9" />
+    </Sets>
+  </Requirements>
+
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://dham56.github.io/linksheet-m365/taskpane.html" />
+  </DefaultSettings>
+
+  <!-- ReadWriteDocument: the add-in writes hyperlinks into the workbook. It has
+       no permission to, and no code to, modify anything in the user's OneDrive —
+       Graph is requested read-only (see src/auth.js). -->
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title" />
+            <Description resid="GetStarted.Description" />
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl" />
+          </GetStarted>
+
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="LinkSheet.Group">
+                <Label resid="LinkSheet.GroupLabel" />
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16" />
+                  <bt:Image size="32" resid="Icon.32x32" />
+                  <bt:Image size="80" resid="Icon.80x80" />
+                </Icon>
+                <Control xsi:type="Button" id="LinkSheet.TaskpaneButton">
+                  <Label resid="LinkSheet.ButtonLabel" />
+                  <Supertip>
+                    <Title resid="LinkSheet.ButtonLabel" />
+                    <Description resid="LinkSheet.ButtonTooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16" />
+                    <bt:Image size="32" resid="Icon.32x32" />
+                    <bt:Image size="80" resid="Icon.80x80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16x16" DefaultValue="https://dham56.github.io/linksheet-m365/assets/icon-16.png" />
+        <bt:Image id="Icon.32x32" DefaultValue="https://dham56.github.io/linksheet-m365/assets/icon-32.png" />
+        <bt:Image id="Icon.80x80" DefaultValue="https://dham56.github.io/linksheet-m365/assets/icon-80.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://cropsettle.com/m365-support.html" />
+        <bt:Url id="Taskpane.Url" DefaultValue="https://dham56.github.io/linksheet-m365/taskpane.html" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GetStarted.Title" DefaultValue="LinkSheet is ready." />
+        <bt:String id="LinkSheet.GroupLabel" DefaultValue="LinkSheet" />
+        <bt:String id="LinkSheet.ButtonLabel" DefaultValue="Link Files" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="GetStarted.Description" DefaultValue="Open LinkSheet from the Home tab to link a folder of OneDrive documents to the cells that name them." />
+        <bt:String id="LinkSheet.ButtonTooltip" DefaultValue="Link, repair, or clear hyperlinks to your OneDrive documents." />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
