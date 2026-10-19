@@ -1,0 +1,284 @@
+/* THE hidden ATTRIBUTE MUST WIN, ALWAYS.
+
+   Everything in this pane that has to disappear - the locked Pro rows and their
+   badges on mobile, the buy link, the repair meter - is hidden by setting
+   el.hidden = true. The browser implements that as a User-Agent rule,
+   [hidden] { display: none }, and ANY author rule that sets display beats it.
+   This file had `label { display: block }` and `.prolock { display: inline-block }`,
+   so setting .hidden on a locked option row or its "Pro" badge did nothing at
+   all: the upsell stayed on screen on iPad, while the certification notes
+   promised it was suppressed. Marketplace policy 1120.2 forbids exactly that.
+
+   So this rule is load-bearing, not tidiness. Do not remove it, and do not
+   "fix" a hiding bug by adding another display rule above it. */
+[hidden] { display: none !important; }
+
+/* Palette, radii and sizes are copied from LinkSheet for Google Sheets
+   (LinkSheet-Sheets/src/Sidebar.html) so the two panels read as one family.
+   Design note: docs/design/2026-10-18-pane-family-look.md. */
+/* --muted is #6d6d6d, not the Sheets panel's #777: #777 on white is 4.48:1, a hair
+   under WCAG AA's 4.5:1 for small text (board, Codex, 2026-10-18). */
+:root {
+  --fg: #1a1a1a;
+  --muted: #6d6d6d;
+  --label: #555;
+  --line: #d0d7de;
+  --bg: #f7f9fb;
+  --brand: #1a5276;
+  --brand-dark: #154360;
+  --brand2: #2e86c1;
+  --blue: var(--brand2);
+  --ok: #1e8449;
+  --warn: #b9770e;
+  --err: #922b21;
+  --warn-bg: #fff8e1;
+  --warn-text: #8a5300;   /* amber TEXT on light; the dark block lightens it. Light and dark both go through
+                             this variable so a later light rule cannot out-cascade the dark one (board r2, Codex). */
+  --err-bg: #fdf0ef;
+  --ok-bg: #eaf6ee;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 14px;
+  font-family: "Segoe UI", Roboto, "Microsoft YaHei", "Microsoft JhengHei", "Yu Gothic",
+    "PingFang SC", "PingFang TC", "Hiragino Sans", Meiryo, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--fg);
+  background: #fff;
+}
+
+h1.brand { font-size: 16px; font-weight: 700; color: var(--brand); margin: 0; }
+.tagline { color: var(--label); font-size: 12px; margin: 2px 0 0; }
+.who { font-size: 11px; margin: 4px 0 0; }
+h2 { font-size: 12px; margin: 10px 0 4px; font-weight: 600; color: var(--label); }
+
+.muted { color: var(--muted); }
+.hint { color: var(--muted); font-size: 11px; margin: 3px 0 0; }
+
+header { margin-bottom: 6px; }
+
+section { margin-bottom: 14px; }
+
+/* Bordered sections with the heading in the border — the Sheets panel's fieldsets. */
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  min-width: 0;
+}
+legend { font-size: 11px; color: var(--label); padding: 0 5px; font-weight: 600; }
+.folder-hint { margin: 0 0 6px; }
+
+label { display: block; font-weight: 600; margin-bottom: 4px; }
+
+input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+}
+input[type="text"]:focus { outline: 2px solid var(--brand2); border-color: var(--brand2); }
+/* Browsers draw placeholders in their own grey (Edge: #757575, 3.19:1 on the dark input) —
+   pin it to the muted text colour, which passes in both themes (board r2b, Codex). */
+input[type="text"]::placeholder { color: var(--muted); opacity: 1; }
+
+/* Every interactive control must show focus. The only rule here used to be the
+   one above, for a text input this pane does not contain — so keyboard users had
+   no visible focus at all, and several controls set `border: none` and relied on
+   a host outline that Office webviews often do not draw. Certification tests
+   keyboard navigation. (Grok review lens, 2026-09-08.) */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--brand2);
+  outline-offset: 2px;
+}
+
+.fieldlabel { font-size: 12px; font-weight: 600; margin: 0 0 4px; color: #333; }
+
+/* Option rows: checkbox, label line, grey explanation under it. */
+.options label.opt {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-weight: 400; margin: 9px 0;
+}
+.options label.opt input { margin: 2px 0 0; flex: 0 0 auto; }
+.options .opt-text { display: block; min-width: 0; }
+.options .l { display: block; font-size: 12.5px; }
+.options .h { display: block; margin: 0; }
+
+/* A COLUMN of full-width buttons, as in the Sheets panel: Create (brand blue),
+   Repair (green), Clear (white with a red outline). Three buttons side by side in
+   a 300px task pane turned every button into a vertical sliver of one letter per
+   line, so a column it stays. */
+.actions { display: flex; flex-direction: column; gap: 0; }
+.actions > button { width: 100%; flex: 0 0 auto; }
+.actions > .hint { margin: 8px 0 0; }
+
+button {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { background: #f0f3f6; }
+button:disabled { opacity: .55; cursor: default; }
+
+button.primary {
+  background: var(--brand); border-color: var(--brand); color: #fff;
+  width: 100%; padding: 11px; font-size: 14px; font-weight: 600; margin-top: 14px;
+}
+button.primary:hover:not(:disabled) { background: var(--brand-dark); }
+button.primary.repair { background: var(--ok); border-color: var(--ok); margin-top: 8px; }
+button.primary.repair:hover:not(:disabled) { background: #186a3b; }
+button.danger { color: var(--err); border-color: #e0b4b0; width: 100%; margin-top: 8px; }
+button.danger:hover:not(:disabled) { background: #fdf0ef; }
+#signin.primary { margin-top: 0; }
+
+/* The results card: status sentence (with a title) and the list below share
+   one bordered card, as the Sheets results card does. */
+.status {
+  padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg); font-size: 12.5px;
+}
+/* The card title is its own element above the live region (see say()). */
+.status-title {
+  padding: 10px 12px 0; border: 1px solid var(--line); border-bottom: none;
+  border-radius: 8px 8px 0 0; background: var(--bg);
+  font-weight: 700; color: var(--brand); font-size: 13px;
+}
+.status-title:not([hidden]) + .status { border-top: none; border-radius: 0 0 8px 8px; padding-top: 6px; }
+.status.ok { color: var(--fg); }
+.status.warn, .status-title.warn { background: var(--warn-bg); color: #8a6d00; border-left: 3px solid #f0a500; }
+.status.error, .status-title.error { background: var(--err-bg); color: var(--err); }
+
+/* Status and results are two stacked cards, 6 px apart (merging them left a gap
+   and a stray rounded edge — board r2, Codex). */
+.status { margin-bottom: 0; }
+.results { max-height: 45vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px;
+           background: var(--bg); padding: 8px 12px 10px; margin-top: 6px; }
+.results ul { margin: 5px 0 0; padding-left: 16px; }
+.results li { margin: 2px 0; font-size: 11.5px; color: #444; word-break: break-word; }
+.results code { font-family: Consolas, "Courier New", monospace; background: #fff; padding: 0 3px; border-radius: 2px; }
+
+footer { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 10px; font-size: 11px; }
+/* Links take the dark brand blue, not --brand2: #2e86c1 on white is 3.97:1 (board, Codex, 2026-10-18). */
+footer a, a { color: var(--brand); }
+
+/* Dark mode: every text colour is re-pointed, not just the backgrounds. Text that
+   is a colour in light mode (danger red, ok green, warn amber, labels) becomes its
+   light tint here; the fills stay as they are because white-on-brand already passes. */
+@media (prefers-color-scheme: dark) {
+  :root { --fg: #f3f2f1; --muted: #b3b0ad; --label: #d0cdca; --line: #3b3a39; --bg: #292827;
+          --brand: #7fc4f0; --brand-dark: #154360; --brand2: #7fc4f0;
+          --ok: #6fd48a; --warn: #f0b94a; --warn-text: #f0b94a; --err: #f1948a; --warn-bg: #3a2f10; --err-bg: #3b1f1c; --ok-bg: #163a20; }
+  body { background: #1b1a19; }
+  input[type="text"] { background: #292827; color: var(--fg); border-color: #605e5c; }
+  button { background: #292827; color: var(--fg); border-color: #605e5c; }
+  button:hover:not(:disabled) { background: #3b3a39; }
+  button.primary { background: #1a5276; border-color: #1a5276; color: #fff; }
+  button.primary:hover:not(:disabled) { background: #154360; }
+  button.primary.repair { background: #1e8449; border-color: #1e8449; }
+  button.primary.repair:hover:not(:disabled) { background: #186a3b; }
+  button.danger { color: var(--err); border-color: #7a3b36; }
+  button.danger:hover:not(:disabled) { background: #3b1f1c; }
+  .fieldlabel { color: var(--fg); }
+  .status.warn, .status-title.warn { color: var(--warn); border-left-color: var(--warn); }
+  .results code { background: #1b1a19; }
+  .results li { color: var(--fg); }
+}
+
+/* ── folder browser ─────────────────────────────────────────────────────── */
+/* (The .tabs/.tab rules that stood here served a tab strip removed in September; dropped
+   2026-10-18 — the active colour was 3.97:1 and the markup no longer exists.) */
+
+.crumbs { font-size: 12px; margin-bottom: 6px; word-break: break-word; }
+.crumb {
+  flex: 0 0 auto; display: inline; padding: 0; border: none; background: none;
+  color: var(--brand); font: inherit; cursor: pointer; text-decoration: underline;
+}
+.crumb:disabled { color: var(--muted); text-decoration: none; cursor: default; opacity: 1; }
+
+.folders { list-style: none; margin: 0; padding: 0; max-height: 30vh; overflow-y: auto;
+           border: 1px solid var(--line); border-radius: 6px; }
+.folders li { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+.folders li:last-child { border-bottom: none; }
+.folders li.use-here { background: var(--bg); }
+
+button.folder {
+  flex: 1; text-align: left; border: none; background: none; padding: 4px 2px;
+  font: inherit; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+button.folder:hover { text-decoration: underline; }
+/* 3px padding was below the ~24px touch target Microsoft tests on iPad. */
+button.pick { flex: 0 0 auto; padding: 6px 12px; font-size: 12px; min-height: 28px; }
+
+button.linklike {
+  flex: 0 0 auto; display: inline; padding: 0; border: none; background: none;
+  color: var(--brand); font: inherit; font-size: 11px; cursor: pointer; text-decoration: underline;
+}
+
+@media (prefers-color-scheme: dark) {
+  .folders li.use-here { background: #292827; }
+}
+
+/* The funnel. Quiet by design: this appears when LinkSheet could not help, so it
+   must read as an answer, not an advertisement. */
+.desktop-hint {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #d8d8d8);
+  border-left: 3px solid var(--brand2);
+  border-radius: 6px;
+  background: rgba(46, 134, 193, 0.05);
+}
+.desktop-hint a { color: var(--brand); }
+
+/* Selecting the current folder: always visible, never inside the scroll area. */
+.use-here-bar { display: flex; align-items: baseline; gap: 6px; margin: 6px 0 8px; flex-wrap: wrap; }
+.use-here-bar .hint { font-size: 12px; min-width: 0; word-break: break-word; }
+/* A long unbroken folder name must wrap, not push the pane sideways. */
+#chosen, .crumbs { word-break: break-word; overflow-wrap: anywhere; }
+/* The selection differs from the folder on screen — say so loudly enough to catch. */
+.hint.mismatch { color: var(--warn-text); font-weight: 600; }
+
+/* ---- Pro / licensing -----------------------------------------------------
+   Deliberately understated. A locked feature should read as information about
+   the plan, not as a nag: the "Pro" badge sits next to the control it explains
+   and the box itself is a quiet section at the bottom, below the actions the
+   free tier can actually use. The badge is the Sheets panel's purple pill. */
+.prolock {
+  display: inline-block; margin-left: 6px; padding: 0 5px;
+  border-radius: 8px; background: #efe6ff; color: #5b21b6;
+  font-size: 10px; line-height: 15px; font-weight: 600; vertical-align: middle;
+}
+/* A disabled checkbox with no explanation reads as a bug. The label greys with
+   it so the pairing is obvious. */
+.options label.locked .l, .options label.locked .h { opacity: .55; }
+
+.pro .fieldlabel { display: block; margin-bottom: 4px; }
+.pro input[type='text'] { margin-bottom: 6px; font-size: 12px; }
+.pro-active { margin: 0; color: var(--ok); font-weight: 600; }
+.pro-active .muted { font-weight: 400; }
+/* Outcomes are colour-coded but never colour-ONLY: every message says in words
+   what happened, because "unverifiable" and "invalid" must not be told apart by
+   hue alone. */
+.pro .hint.good { color: var(--ok); }
+.pro .hint.bad { color: var(--err); }
+.pro .hint.warn { color: var(--warn-text); }
+
+@media (prefers-color-scheme: dark) {
+  .prolock { background: #3b2a5e; color: #d9c8ff; }
+  .pro input[type='text'] { background: #292827; color: #f3f2f1; border-color: #4a4a4a; }
+}
