@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LinkSheet for Microsoft 365</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; padding: 3rem 1.25rem; font: 16px/1.6 -apple-system, "Segoe UI", system-ui, sans-serif;
+         max-width: 42rem; margin-inline: auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+  p.sub { margin: 0 0 2rem; opacity: .7; }
+  code { background: rgba(128,128,128,.15); padding: .1em .35em; border-radius: 3px; font-size: .9em; }
+  ol { padding-left: 1.25rem; }
+  li { margin: .4rem 0; }
+  footer { margin-top: 3rem; font-size: .85rem; opacity: .6; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+  <h1>LinkSheet for Microsoft 365</h1>
+  <p class="sub">An Excel add-in that turns cells into links to the matching files in OneDrive.</p>
+
+  <p>This address hosts the add-in itself, not a download. Excel loads it from here.</p>
+
+  <h2>Install it into Excel on the web</h2>
+  <ol>
+    <li>Save <a href="./manifest.xml">manifest.xml</a> to your computer.</li>
+    <li>In Excel on the web, open <strong>Insert &rsaquo; Office Add-ins &rsaquo; Upload My Add-in</strong>.</li>
+    <li>Choose the file you just saved.</li>
+  </ol>
+
+  <p>LinkSheet then appears on the Home tab. It reads only the names of the files in the
+     OneDrive folder you choose, never their contents, and it never uploads your workbook.</p>
+
+  <footer>
+    Published by CropSettle LLC. An independent product, not affiliated with or endorsed by Microsoft.
+    Excel and OneDrive are trademarks of Microsoft Corporation.
+    <a href="https://cropsettle.com/m365-support.html">Support</a>
+  </footer>
+</body>
+</html>

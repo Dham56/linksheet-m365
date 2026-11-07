@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The clear PROBE's manifest (docs/design/2026-10-31-clear-range-links.md §3 Step 1): its own id, so it never
+     fights the Store add-in for the ribbon; sideloaded by hand on the ClearProbe.xlsx fixture; never submitted. -->
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xsi:type="TaskPaneApp">
+  <Id>c4d1a8e2-3b7f-4f5a-9d60-2e8b1c7a9f44</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>CropSettle</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="LinkSheet clear probe" />
+  <Description DefaultValue="Measures which Office.js call removes a range hyperlink. Internal test page." />
+  <IconUrl DefaultValue="https://dham56.github.io/linksheet-m365/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://dham56.github.io/linksheet-m365/assets/icon-64.png" />
+  <SupportUrl DefaultValue="https://cropsettle.com/support/" />
+  <AppDomains>
+    <AppDomain>https://dham56.github.io</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Workbook" />
+  </Hosts>
+  <Requirements>
+    <Sets DefaultMinVersion="1.9">
+      <Set Name="ExcelApi" MinVersion="1.9" />
+    </Sets>
+  </Requirements>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://dham56.github.io/linksheet-m365/probe/clear.html" />
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+</OfficeApp>

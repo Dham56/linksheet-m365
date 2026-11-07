@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>LinkSheet write probe</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    body { font: 13px/1.4 system-ui, sans-serif; margin: 12px; }
+    button { display: block; width: 100%; margin: 6px 0; padding: 8px; }
+    pre { white-space: pre-wrap; font-size: 11px; background: #f4f4f4; padding: 6px; }
+    h3 { margin: 10px 0 4px; }
+  </style>
+</head>
+<body>
+  <!-- Probe for docs/design/2026-11-03-pane-text-type-preserved.md §6 #2/#8 (Grok). Writes to A1:A3 of
+       the ACTIVE sheet of a THROWAWAY workbook only. Not linked from the pane; its own add-in id. -->
+  <h3>LinkSheet write probe</h3>
+  <div id="api">reading…</div>
+  <button id="setup">1. Set up A1:A3 (text "442868", text "0442868", number 36426) + A5 pre-linked text</button>
+  <button id="armA">Arm A: link WITH textToDisplay (today)</button>
+  <button id="armB">Arm B: link with NO textToDisplay</button>
+  <button id="armC">Arm C: A, then typed-string restore (valuesAsJson) on A1:A2</button>
+  <button id="armD">Arm D: A, then '@' + value on A1:A2</button>
+  <button id="read">Read A1:A5 now</button>
+  <pre id="out"></pre>
+  <script>
+    const URL1 = 'https://dham56.github.io/linksheet-m365/probe/index.html#f1';
+    const URL2 = 'https://dham56.github.io/linksheet-m365/probe/index.html#f2';
+    const out = (s) => { document.getElementById('out').textContent += s + '\n'; };
+    const clear = () => { document.getElementById('out').textContent = ''; };
+    const has116 = () => Office.context.requirements.isSetSupported('ExcelApi', '1.16');
+    const has120 = () => Office.context.requirements.isSetSupported('ExcelApi', '1.20');
+
+    async function readCells(context, label) {
+      const sh = context.workbook.worksheets.getActiveWorksheet();
+      const r = sh.getRange('A1:A5');
+      r.load(['values', 'text', 'valueTypes', 'numberFormat']);
+      const props = r.getCellProperties({ hyperlink: true, format: { font: { color: true, underline: true } } });
+      await context.sync();
+      const rows = [];
+      for (let i = 0; i < 5; i++) {
+        const p = props.value[i][0];
+        rows.push(`A${i + 1}: value=${JSON.stringify(r.values[i][0])} text=${JSON.stringify(r.text[i][0])} type=${r.valueTypes[i][0]} fmt=${r.numberFormat[i][0]} addr=${p.hyperlink && p.hyperlink.address ? p.hyperlink.address.slice(0, 60) : '(none)'} tip=${p.hyperlink ? JSON.stringify(p.hyperlink.screenTip) : '-'} color=${p.format.font.color} ul=${p.format.font.underline}`);
+      }
+      out(`--- ${label} (${new Date().toLocaleTimeString()}) ---\n` + rows.join('\n'));
+    }
+
+    async function setup() {
+      await Excel.run(async (context) => {
+        const sh = context.workbook.worksheets.getActiveWorksheet();
+        const r = sh.getRange('A1:A5');
+        r.clear();
+        r.numberFormat = [['General'], ['General'], ['General'], ['General'], ['General']];
+        if (has116()) {
+          sh.getRange('A1:A2').valuesAsJson = [[{ type: 'String', basicValue: '442868' }], [{ type: 'String', basicValue: '0442868' }]];
+        } else {
+          sh.getRange('A1:A2').numberFormat = [['@'], ['@']];
+          sh.getRange('A1:A2').values = [['442868'], ['0442868']];
+        }
+        sh.getRange('A3').values = [[36426]];
+        if (has116()) sh.getRange('A5').valuesAsJson = [[{ type: 'String', basicValue: '377198' }]];
+        else { sh.getRange('A5').numberFormat = [['@']]; sh.getRange('A5').values = [['377198']]; }
+        await context.sync();
+        // A5 gets an existing link (Repair's object path starts from a linked cell)
+        sh.getRange('A5').setCellProperties([[{ hyperlink: { address: 'file:///C:/Docs/377198.pdf', textToDisplay: '377198' } }]]);
+        await context.sync();
+        await readCells(context, 'after setup');
+      });
+    }
+
+    function linkProps(withText, texts) {
+      return texts.map((t, i) => [{ hyperlink: Object.assign({ address: i === 3 ? URL2 : URL1, screenTip: 'probe ' + (i + 1) }, withText ? { textToDisplay: t } : {}), format: { font: { color: '#0563C1', underline: 'Single' } } }]);
+    }
+
+    async function armA() {
+      await Excel.run(async (context) => {
+        const sh = context.workbook.worksheets.getActiveWorksheet();
+        sh.getRange('A1:A3').setCellProperties(linkProps(true, ['442868', '0442868', '36426']));
+        sh.getRange('A5').setCellProperties([[{ hyperlink: { address: URL2, textToDisplay: '377198', screenTip: 'probe 5' } }]]);
+        await context.sync();
+        await readCells(context, 'Arm A: with textToDisplay');
+      });
+    }
+    async function armB() {
+      await Excel.run(async (context) => {
+        const sh = context.workbook.worksheets.getActiveWorksheet();
+        sh.getRange('A1:A3').setCellProperties(linkProps(false, ['442868', '0442868', '36426']));
+        sh.getRange('A5').setCellProperties([[{ hyperlink: { address: URL2, screenTip: 'probe 5' } }]]);
+        await context.sync();
+        await readCells(context, 'Arm B: no textToDisplay');
+      });
+    }
+    async function armC() {
+      await Excel.run(async (context) => {
+        const sh = context.workbook.worksheets.getActiveWorksheet();
+        sh.getRange('A1:A3').setCellProperties(linkProps(true, ['442868', '0442868', '36426']));
+        await context.sync();
+        await readCells(context, 'Arm C step 1: with textToDisplay');
+        if (!has116()) { out('ExcelApi 1.16 NOT supported here — arm C unavailable'); return; }
+        sh.getRange('A1').valuesAsJson = [[{ type: 'String', basicValue: '442868' }]];
+        sh.getRange('A2').valuesAsJson = [[{ type: 'String', basicValue: '0442868' }]];
+        await context.sync();
+        await readCells(context, 'Arm C step 2: typed-string restore on A1:A2');
+      });
+    }
+    async function armD() {
+      await Excel.run(async (context) => {
+        const sh = context.workbook.worksheets.getActiveWorksheet();
+        sh.getRange('A1:A3').setCellProperties(linkProps(true, ['442868', '0442868', '36426']));
+        await context.sync();
+        await readCells(context, 'Arm D step 1: with textToDisplay');
+        sh.getRange('A1:A2').numberFormat = [['@'], ['@']];
+        await context.sync();
+        sh.getRange('A1:A2').values = [['442868'], ['0442868']];
+        await context.sync();
+        await readCells(context, "Arm D step 2: '@' then value on A1:A2");
+      });
+    }
+    async function readNow() { await Excel.run(async (context) => { await readCells(context, 'read'); }); }
+
+    Office.onReady(() => {
+      document.getElementById('api').textContent =
+        `host=${Office.context.host} platform=${Office.context.platform} ExcelApi1.16=${has116()} 1.20=${has120()} ua=${navigator.userAgent.slice(0, 80)}`;
+      for (const [id, fn] of [['setup', setup], ['armA', armA], ['armB', armB], ['armC', armC], ['armD', armD], ['read', readNow]]) {
+        document.getElementById(id).onclick = () => { clear(); fn().catch((e) => out('ERROR ' + (e && e.message || e) + (e && e.debugInfo ? ' ' + JSON.stringify(e.debugInfo) : ''))); };
+      }
+    });
+  </script>
+</body>
+</html>

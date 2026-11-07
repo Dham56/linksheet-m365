@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign in — LinkSheet</title>
+<link rel="stylesheet" href="./taskpane.css" />
+<style>
+  body { padding: 24px; text-align: center; }
+  .spinner { margin: 24px auto 12px; width: 28px; height: 28px; border: 3px solid var(--line);
+             border-top-color: var(--blue); border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+</style>
+</head>
+<body>
+  <h1>Signing in to OneDrive</h1>
+  <div class="spinner" role="status" aria-live="polite" aria-label="Signing in"></div>
+  <p id="msg" class="hint">Follow the Microsoft prompts. This window closes on its own.</p>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script type="module" src="./dialog.js"></script>
+</body>
+</html>

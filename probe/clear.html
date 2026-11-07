@@ -1,0 +1,203 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>LinkSheet clear probe</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    body { font: 13px/1.4 system-ui, sans-serif; margin: 12px; }
+    button { display: block; width: 100%; margin: 6px 0; padding: 8px; }
+    pre { white-space: pre-wrap; font-size: 11px; background: #f4f4f4; padding: 6px; }
+    h3 { margin: 10px 0 4px; }
+  </style>
+</head>
+<body>
+  <!-- Probe for docs/design/2026-10-31-clear-range-links.md §3 Step 1. Runs ONE candidate clear call per
+       sheet of the fixture workbook ClearProbe.xlsx (built by COM: range links, single links, a merged link,
+       an internal link, a =HYPERLINK formula, a formatted linked cell M1 and its unlinked twin M2). Reads the
+       hit list the way the pane does (getCellProperties in bands), applies the call, re-reads. The ORACLE is
+       outside this page: COM on desktop, the downloaded xlsx's sheet XML on the web. Not linked from the pane. -->
+  <h3>LinkSheet clear probe</h3>
+  <div id="api">reading…</div>
+  <button id="readA">Read CandA (no change)</button>
+  <button id="a">(a) today: getRanges(list).clear(hyperlinks) on CandA</button>
+  <button id="b">(b) per cell: getRange(cell).clear(hyperlinks), 30 per sync, on CandB</button>
+  <button id="c">(c') contiguous runs: getRange(run).clear(hyperlinks) on CandC</button>
+  <button id="d">(d) DIAGNOSTIC: getRanges(list).clear(removeHyperlinks) on CandD</button>
+  <button id="e">(e) per cell: getRange(cell).hyperlink = null / clear('Hyperlinks') on CandB (after b)</button>
+  <button id="g">(g) merged: getRange('J1:K1').clear(hyperlinks) on CandC (the merged area as one range)</button>
+  <button id="h">(h) merged-aware per cell on CandA: a cell inside a merged area clears its getMergedAreas()</button>
+  <button id="i">(i) per cell with per-batch catch and one-cell isolation on CandD</button>
+  <pre id="out"></pre>
+  <script>
+    const out = (s) => { document.getElementById('out').textContent += s + '\n'; };
+    const clear = () => { document.getElementById('out').textContent = ''; };
+    const CONTROL = ['M1', 'M2', 'N1', 'A50', 'J1', 'A4'];
+
+    function a1(r, c) { let n = c + 1, s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s + (r + 1); }
+
+    async function hits(context, sheet) {
+      const used = sheet.getUsedRangeOrNullObject();
+      used.load(['rowIndex', 'columnIndex', 'rowCount', 'columnCount', 'isNullObject']);
+      await context.sync();
+      if (used.isNullObject) return [];
+      const range = sheet.getRangeByIndexes(used.rowIndex, used.columnIndex, used.rowCount, used.columnCount);
+      const got = range.getCellProperties({ hyperlink: true });
+      await context.sync();
+      const list = [];
+      const grid = got.value || [];
+      for (let i = 0; i < grid.length; i++) for (let c = 0; c < (grid[i] || []).length; c++) {
+        const link = grid[i][c] && grid[i][c].hyperlink;
+        if (link && (link.address || link.documentReference)) list.push({ ref: a1(used.rowIndex + i, used.columnIndex + c), addr: link.address || ('#' + link.documentReference) });
+      }
+      return list;
+    }
+
+    async function controls(context, sheet) {
+      const rows = [];
+      for (const ref of CONTROL) {
+        const r = sheet.getRange(ref);
+        r.load(['values', 'formulas', 'numberFormat']);
+        r.format.load(['horizontalAlignment']);
+        r.format.font.load(['bold', 'name', 'size', 'color', 'underline']);
+        r.format.fill.load(['color']);
+        const bt = r.format.borders.getItem('EdgeTop'); bt.load('style');
+        await context.sync();
+        rows.push(`${ref}: v=${JSON.stringify(r.values[0][0])} f=${JSON.stringify(r.formulas[0][0])} nf=${r.numberFormat[0][0]} bold=${r.format.font.bold} font=${r.format.font.name}/${r.format.font.size} color=${r.format.font.color} ul=${r.format.font.underline} fill=${r.format.fill.color} align=${r.format.horizontalAlignment} top=${bt.style}`);
+      }
+      return rows.join('\n');
+    }
+
+    async function report(context, sheet, label) {
+      const h = await hits(context, sheet);
+      const refs = h.map((x) => x.ref);
+      const shown = refs.length > 16 ? refs.slice(0, 16).join(',') + ' …+' + (refs.length - 16) : refs.join(',');
+      out(`--- ${label}: ${h.length} linked cells by getCellProperties: ${shown} | first addr ${h[0] ? h[0].addr.slice(0, 40) : '-'} ---`);
+      if (/AFTER/.test(label)) out(await controls(context, sheet));
+    }
+
+    async function run(name, fn) {
+      await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem(name);
+        await report(context, sheet, name + ' BEFORE');
+        const h = await hits(context, sheet);
+        const t0 = Date.now();
+        await fn(context, sheet, h.map((x) => x.ref));
+        out(`call done in ${Date.now() - t0} ms`);
+        await report(context, sheet, name + ' AFTER');
+      });
+    }
+
+    const candA = (context, sheet, refs) => (async () => {
+      for (let i = 0; i < refs.length; i += 30) {
+        const areas = sheet.getRanges(refs.slice(i, i + 30).join(','));
+        areas.clear(Excel.ClearApplyTo.hyperlinks);
+        await context.sync();
+      }
+    })();
+    const candB = (context, sheet, refs) => (async () => {
+      for (let i = 0; i < refs.length; i += 30) {
+        for (const ref of refs.slice(i, i + 30)) sheet.getRange(ref).clear(Excel.ClearApplyTo.hyperlinks);
+        await context.sync();
+      }
+    })();
+    function runs(refs) {
+      // maximal vertical runs within a column (A1,A2,A3 -> A1:A3); horizontal runs are left as cells
+      const parse = (r) => { const m = r.match(/^([A-Z]+)(\d+)$/); return { col: m[1], row: +m[2] }; };
+      const byCol = {};
+      for (const r of refs) { const p = parse(r); (byCol[p.col] ||= []).push(p.row); }
+      const list = [];
+      for (const col of Object.keys(byCol)) {
+        const rows = byCol[col].sort((x, y) => x - y);
+        let s = rows[0], prev = rows[0];
+        for (let k = 1; k <= rows.length; k++) {
+          if (k < rows.length && rows[k] === prev + 1) { prev = rows[k]; continue; }
+          list.push(s === prev ? `${col}${s}` : `${col}${s}:${col}${prev}`);
+          if (k < rows.length) { s = rows[k]; prev = rows[k]; }
+        }
+      }
+      return list;
+    }
+    const candC = (context, sheet, refs) => (async () => {
+      const list = runs(refs);
+      out('runs: ' + list.join(', '));
+      for (let i = 0; i < list.length; i += 30) {
+        for (const run of list.slice(i, i + 30)) sheet.getRange(run).clear(Excel.ClearApplyTo.hyperlinks);
+        await context.sync();
+      }
+    })();
+    const candD = (context, sheet, refs) => (async () => {
+      for (let i = 0; i < refs.length; i += 30) {
+        const areas = sheet.getRanges(refs.slice(i, i + 30).join(','));
+        areas.clear(Excel.ClearApplyTo.removeHyperlinks);
+        await context.sync();
+      }
+    })();
+    const candE = (context, sheet, refs) => (async () => {
+      for (let i = 0; i < refs.length; i += 30) {
+        for (const ref of refs.slice(i, i + 30)) sheet.getRange(ref).clear('Hyperlinks');
+        await context.sync();
+      }
+    })();
+
+    const candG = (context, sheet, refs) => (async () => {
+      sheet.getRange('J1:K1').clear(Excel.ClearApplyTo.hyperlinks);
+      await context.sync();
+    })();
+    const candH = (context, sheet, refs) => (async () => {
+      // for each hit: if it sits in a merged area, clear that area (once); else clear the cell
+      const seen = new Set();
+      for (let i = 0; i < refs.length; i += 30) {
+        const chunk = refs.slice(i, i + 30);
+        const cells = chunk.map((r) => { const c = sheet.getRange(r); const m = c.getMergedAreasOrNullObject(); m.load(['address', 'isNullObject']); return { r, c, m }; });
+        await context.sync();
+        for (const x of cells) {
+          if (!x.m.isNullObject) {
+            const addr = x.m.address;
+            if (seen.has(addr)) continue;
+            seen.add(addr);
+            out('merged area for ' + x.r + ': ' + addr);
+            sheet.getRange(addr.split('!').pop()).clear(Excel.ClearApplyTo.hyperlinks);
+          } else {
+            x.c.clear(Excel.ClearApplyTo.hyperlinks);
+          }
+        }
+        await context.sync();
+      }
+    })();
+    const candI = (context, sheet, refs) => (async () => {
+      const still = [];
+      for (let i = 0; i < refs.length; i += 30) {
+        const chunk = refs.slice(i, i + 30);
+        try {
+          for (const ref of chunk) sheet.getRange(ref).clear(Excel.ClearApplyTo.hyperlinks);
+          await context.sync();
+        } catch (e) {
+          out('batch ' + (i / 30) + ' threw: ' + (e && e.message || e) + ' — isolating');
+          for (const ref of chunk) {
+            try { sheet.getRange(ref).clear(Excel.ClearApplyTo.hyperlinks); await context.sync(); }
+            catch (e2) { still.push(ref); out('  ' + ref + ' threw: ' + (e2 && e2.message || e2)); }
+          }
+        }
+      }
+      out('still (threw): ' + still.join(', '));
+    })();
+
+    Office.onReady(() => {
+      let api = '';
+      try { api = ['1.9', '1.12', '1.16', '1.20'].map((v) => v + '=' + Office.context.requirements.isSetSupported('ExcelApi', v)).join(' '); } catch (e) { api = String(e); }
+      document.getElementById('api').textContent = `host=${Office.context.host} platform=${Office.context.platform} ExcelApi ${api}`;
+      const wire = (id, fn) => { document.getElementById(id).onclick = () => { clear(); fn().catch((e) => out('ERROR ' + (e && e.message || e) + (e && e.debugInfo ? ' ' + JSON.stringify(e.debugInfo) : ''))); }; };
+      wire('readA', () => Excel.run(async (context) => { await report(context, context.workbook.worksheets.getItem('CandA'), 'CandA read'); }));
+      wire('a', () => run('CandA', candA));
+      wire('b', () => run('CandB', candB));
+      wire('c', () => run('CandC', candC));
+      wire('d', () => run('CandD', candD));
+      wire('e', () => run('CandB', candE));
+      wire('g', () => run('CandC', candG));
+      wire('h', () => run('CandA', candH));
+      wire('i', () => run('CandD', candI));
+    });
+  </script>
+</body>
+</html>
